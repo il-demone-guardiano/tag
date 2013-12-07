@@ -57,7 +57,7 @@ typedef NS_ENUM(int, SearchScope) {
 @property (assign, nonatomic) OutputFlags outputFlags;
 @property (assign, nonatomic) SearchScope searchScope;
 
-@property (copy, nonatomic) NSSet* tags;
+@property (copy, nonatomic) NSOrderedSet* tags;
 @property (copy, nonatomic) NSArray* URLs;
 
 - (void)parseCommandLineArgv:(char * const *)argv argc:(int)argc;

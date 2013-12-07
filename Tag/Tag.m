@@ -283,7 +283,7 @@ static void Printf(NSString* fmt, ...)
     NSArray* components = [arg componentsSeparatedByString:@","];
     
     // Form the unique set of tags
-    NSMutableSet* uniqueTags = [NSMutableSet new];
+    NSMutableOrderedSet* uniqueTags = [NSMutableOrderedSet new];
     for (NSString* component in components)
     {
         NSString* trimmed = [component stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
@@ -403,7 +403,6 @@ static void Printf(NSString* fmt, ...)
     if (printTags)
     {
         BOOL needLineTerm = NO;
-        NSArray* sortedTags = [tagArray sortedArrayUsingSelector:@selector(compare:)];
     
         NSString* tagSeparator;
         NSString* startingSepator;
@@ -420,7 +419,7 @@ static void Printf(NSString* fmt, ...)
         }
         
         NSString* sep = startingSepator;
-        for (NSString* tag in sortedTags)
+        for (NSString* tag in tagArray)
         {
             if (needLineTerm)
                 putc(lineTerminator, stdout);
@@ -435,23 +434,23 @@ static void Printf(NSString* fmt, ...)
 }
 
 
-- (BOOL)wildcardInTagSet:(NSSet*)set
+- (BOOL)wildcardInTagSet:(NSOrderedSet*)set
 {
     TagName* wildcard = [[TagName alloc] initWithTag:@"*"];
     return [set containsObject:wildcard];
 }
 
 
-- (NSMutableSet*)tagSetFromTagArray:(NSArray*)tagArray
+- (NSMutableOrderedSet*)tagSetFromTagArray:(NSArray*)tagArray
 {
-    NSMutableSet* set = [[NSMutableSet alloc] initWithCapacity:[tagArray count]];
+    NSMutableOrderedSet* set = [[NSMutableOrderedSet alloc] initWithCapacity:[tagArray count]];
     for (NSString* tag in tagArray)
         [set addObject:[[TagName alloc] initWithTag:tag]];
     return set;
 }
 
 
-- (NSArray*)tagArrayFromTagSet:(NSSet*)tagSet
+- (NSArray*)tagArrayFromTagSet:(NSOrderedSet*)tagSet
 {
     NSMutableArray* array = [[NSMutableArray alloc] initWithCapacity:[tagSet count]];
     for (TagName* tag in tagSet)
@@ -488,8 +487,8 @@ static void Printf(NSString* fmt, ...)
                 [self reportFatalError:error onURL:URL];
             
             // Form the union of the existing tags + new tags.
-            NSMutableSet* tagSet = [self tagSetFromTagArray:existingTags];
-            [tagSet unionSet:self.tags];
+            NSMutableOrderedSet* tagSet = [self tagSetFromTagArray:existingTags];
+            [tagSet unionOrderedSet:self.tags];
             
             // Set all the new tags onto the item
             if (![URL setResourceValue:[self tagArrayFromTagSet:tagSet] forKey:NSURLTagNamesKey error:&error])
@@ -526,8 +525,8 @@ static void Printf(NSString* fmt, ...)
             else
             {
                 // Existing tags minus tags to remove
-                NSMutableSet* tagSet = [self tagSetFromTagArray:existingTags];
-                [tagSet minusSet:self.tags];
+                NSMutableOrderedSet* tagSet = [self tagSetFromTagArray:existingTags];
+                [tagSet minusOrderedSet:self.tags];
                 revisedTags = [self tagArrayFromTagSet:tagSet];
             }
             
@@ -556,7 +555,7 @@ static void Printf(NSString* fmt, ...)
             
             // If the set of existing tags contains all of the required
             // tags then print the path
-            if ((matchAny && [tagArray count]) || [self.tags isSubsetOfSet:[self tagSetFromTagArray:tagArray]])
+            if ((matchAny && [tagArray count]) || [self.tags isSubsetOfOrderedSet:[self tagSetFromTagArray:tagArray]])
                 [self emitURL:URL tags:tagArray];
         }
     }
@@ -596,7 +595,7 @@ static void Printf(NSString* fmt, ...)
 }
 
 
-- (NSPredicate*)formQueryPredicateForTags:(NSSet*)tagSet
+- (NSPredicate*)formQueryPredicateForTags:(NSOrderedSet*)tagSet
 {
     NSAssert([tagSet count], @"Assumes there are tags to query for");
     
@@ -610,7 +609,7 @@ static void Printf(NSString* fmt, ...)
     }
     else if ([tagSet count] == 1)
     {
-        result = [NSPredicate predicateWithFormat:@"%K ==[c] %@", kMDItemUserTags, ((TagName*)tagSet.anyObject).visibleName];
+        result = [NSPredicate predicateWithFormat:@"%K ==[c] %@", kMDItemUserTags, ((TagName*)tagSet.firstObject).visibleName];
     }
     else
     {
@@ -643,7 +642,7 @@ static void Printf(NSString* fmt, ...)
 }
 
 
-- (void)initiateMetadataSearchForTags:(NSSet*)tagSet
+- (void)initiateMetadataSearchForTags:(NSOrderedSet*)tagSet
 {
     // Create the metadata query instance
     self.metadataQuery=[[NSMetadataQuery alloc] init];
